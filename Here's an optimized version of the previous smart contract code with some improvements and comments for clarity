@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Contract definition
+contract SimpleSmartContract {
+    // Variable to store data
+    uint256 private data;
+
+    // Event to notify clients when data is updated
+    event DataUpdated(uint256 newData);
+
+    // Constructor executed during contract deployment
+    constructor(uint256 initialData) {
+        data = initialData;
+    }
+
+    // Function to update data, only callable by the contract owner
+    function updateData(uint256 newData) public {
+        require(newData != data, "New data must be different from current data");
+
+        // Update data
+        data = newData;
+
+        // Trigger event to notify clients
+        emit DataUpdated(newData);
+    }
+
+    // Function to get current data
+    function getData() public view returns (uint256) {
+        return data;
+    }
+
+    // Function modifier to restrict access to the contract owner
+    modifier onlyOwner() {
+        // Replace the owner address with the actual owner's address
+        require(msg.sender == 0xYourOwnerAddress, "Only the contract owner can call this function");
+        _;
+    }
+}
