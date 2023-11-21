@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract EnhancedStorageETH {
+    address public owner;
+    string public storedData;
+    uint256 public creationTimestamp;
+    bool public isLocked;
+
+    mapping(address => uint256) public votes;
+    uint256 public totalVotes;
+
+    event DataStored(address indexed user, string data);
+    event DataDeleted(address indexed deleter);
+    event Voted(address indexed voter, uint256 votes);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
+    modifier notLocked() {
+        require(!isLocked, "Contract is locked and data cannot be modified");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        creationTimestamp = block.timestamp;
+        isLocked = false;
+    }
+
+    function set(string memory newData) external onlyOwner notLocked {
+        storedData = newData;
+        emit DataStored(msg.sender, newData);
+    }
+
+    function get() external view returns (string memory) {
+        return storedData;
+    }
+
+    function deleteData() external onlyOwner notLocked {
+        delete storedData;
+        emit DataDeleted(msg.sender);
+    }
+
+    function lockContract() external onlyOwner {
+        isLocked = true;
+    }
+
+    function unlockContract() external onlyOwner {
+        isLocked = false;
+    }
+
+    function vote(uint256 numberOfVotes) external {
+        require(numberOfVotes > 0, "Number of votes must be greater than 0");
+        require(!isLocked, "Voting is not allowed when the contract is locked");
+
+        votes[msg.sender] += numberOfVotes;
+        totalVotes += numberOfVotes;
+
+        emit Voted(msg.sender, numberOfVotes);
+    }
+
+    function getVoteCount(address voter) external view returns (uint256) {
+        return votes[voter];
+    }
+}
