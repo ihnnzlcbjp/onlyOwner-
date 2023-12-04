@@ -1,0 +1,65 @@
+import starknet;
+
+contract LiquidityPool {
+    starknet.StorageSlot!({user: felt, tokenA_balance: felt, tokenB_balance: felt, fee_percentage: felt});
+
+    public (user: felt) func initialize() {
+        // Initialize the contract
+        self.storage.user = tx.origin;
+        self.storage.tokenA_balance = 0;
+        self.storage.tokenB_balance = 0;
+        self.storage.fee_percentage = 1; // 1% fee by default
+    }
+
+    public (tokenA_amount: felt, tokenB_amount: felt) func addLiquidity(tokenA_amount: felt, tokenB_amount: felt) {
+        // Add liquidity
+        self.storage.tokenA_balance += tokenA_amount;
+        self.storage.tokenB_balance += tokenB_amount;
+    }
+
+    public (tokenA_amount: felt, tokenB_amount: felt) func removeLiquidity() {
+        // Remove liquidity
+        assert(self.storage.user == tx.origin, "Not the liquidity provider");
+        let tokenA_amount = self.storage.tokenA_balance;
+        let tokenB_amount = self.storage.tokenB_balance;
+        self.storage.tokenA_balance = 0;
+        self.storage.tokenB_balance = 0;
+        // Pay the fee to the liquidity provider
+        let fee = calculateFee(tokenB_amount);
+        self.storage.tokenB_balance += fee;
+    }
+
+    public (tokenA_balance: felt, tokenB_balance: felt) view func getLiquidity() -> (felt, felt) {
+        // Get current liquidity
+        return (self.storage.tokenA_balance, self.storage.tokenB_balance);
+    }
+
+    public (tokenB_received: felt) func swapTokenAForTokenB(tokenA_amount: felt) {
+        // Swap token A for token B
+        assert(self.storage.tokenA_balance >= tokenA_amount, "Insufficient liquidity");
+        let tokenB_amount = calculateSwapAmount(tokenA_amount);
+        self.storage.tokenA_balance -= tokenA_amount;
+        self.storage.tokenB_balance += tokenB_amount;
+        // Collect a fee on the swap
+        let fee = calculateFee(tokenB_amount);
+        self.storage.tokenB_balance += fee;
+    }
+
+    public (fee_percentage: felt) func setFeePercentage(new_fee_percentage: felt) {
+        // Set the new fee percentage
+        assert(self.storage.user == tx.origin, "Not the owner");
+        assert(new_fee_percentage <= 10, "Fee percentage cannot exceed 10%");
+        self.storage.fee_percentage = new_fee_percentage;
+    }
+
+    private (tokenB_amount: felt) func calculateSwapAmount(tokenA_amount: felt) -> felt {
+        // Calculate the amount of token B to be received after applying the fee
+        let fee_multiplier = (100 - self.storage.fee_percentage) / 100;
+        return tokenA_amount * 2 * fee_multiplier;
+    }
+
+    private (fee: felt) func calculateFee(amount: felt) -> felt {
+        // Calculate the fee based on the specified percentage
+        return (amount * self.storage.fee_percentage) / 100;
+    }
+}
